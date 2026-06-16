@@ -31,7 +31,7 @@ export default function HomePage() {
       <footer className="relative z-10 text-center pb-10 px-5">
         <Divider color="white" className="mb-6 opacity-50" />
         <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.14)" }}>
-          {APP_CONFIG.name} v{APP_CONFIG.version} · Khayran Ald Afasy ♥ · {new Date().getFullYear()}
+          {APP_CONFIG.name} v{APP_CONFIG.version} · <span className="text-white font-medium">☆ Khayran Ald Afasy ☆</span> ♥ · {new Date().getFullYear()}
         </p>
       </footer>
     </div>
