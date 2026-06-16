@@ -1,11 +1,13 @@
 "use client";
 // 📍 src/components/ui/glass-card.tsx
 
-import { motion, type HTMLMotionProps } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MOTION } from "@/config/design";
+import type { ReactNode, HTMLAttributes } from "react";
 
-interface GlassCardProps extends HTMLMotionProps<"div"> {
+interface GlassCardProps extends HTMLAttributes<HTMLDivElement> {
+  children?: ReactNode;
   variant?: "base" | "md" | "blue" | "dark";
   glow?: "none" | "blue" | "red" | "cyan";
   hover?: boolean;
@@ -66,6 +68,18 @@ export function GlassCard({ variant = "base", glow = "none", hover = false, anim
 
   const vStyle = variantStyles[variant];
 
+  const motionProps = {
+    ...(hover && {
+      whileHover: { y: -4, scale: 1.01, transition: MOTION.spring.gentle },
+      whileTap: { scale: 0.98, transition: { duration: 0.1 } },
+    }),
+    ...(animated && {
+      initial: { opacity: 0, y: 24, filter: "blur(8px)" },
+      animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+      transition: { duration: 0.5, ease: MOTION.ease.ios },
+    }),
+  };
+
   return (
     <motion.div
       className={cn("relative overflow-hidden", paddingClass, roundedClass, className)}
@@ -74,18 +88,10 @@ export function GlassCard({ variant = "base", glow = "none", hover = false, anim
         boxShadow: [vStyle.boxShadow, glowShadow].filter(Boolean).join(", "),
         willChange: hover ? "transform" : undefined,
       }}
-      {...(hover && {
-        whileHover: { y: -4, scale: 1.01, transition: MOTION.spring.gentle },
-        whileTap: { scale: 0.98, transition: { duration: 0.1 } },
-      })}
-      {...(animated && {
-        initial: { opacity: 0, y: 24, filter: "blur(8px)" },
-        animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-        transition: { duration: 0.5, ease: MOTION.ease.ios },
-      })}
-      {...props}
+      {...motionProps}
+      {...(props as any)}
     >
-      {/* Inner highlight — cahaya dari atas */}
+      {/* Inner highlight */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px"
@@ -109,7 +115,7 @@ export function GlassCard({ variant = "base", glow = "none", hover = false, anim
         />
       )}
 
-      {/* Shimmer sweep */}
+      {/* Shimmer */}
       {shimmer && (
         <motion.div
           aria-hidden
