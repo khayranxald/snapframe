@@ -2,101 +2,197 @@
 // 📍 src/components/result/photo-strip-frame.tsx
 
 import { forwardRef } from "react";
-import { motion } from "framer-motion";
 import { type PhotoboothTemplate } from "@/data/templates";
-import { cn } from "@/lib/utils";
 
 interface PhotoStripFrameProps {
   photos: string[];
   template: PhotoboothTemplate;
   scale?: number;
+  [key: string]: unknown;
 }
 
-export const PhotoStripFrame = forwardRef<HTMLDivElement, PhotoStripFrameProps>(function PhotoStripFrame({ photos, template, scale = 1 }, ref) {
+export const PhotoStripFrame = forwardRef<HTMLDivElement, PhotoStripFrameProps>(function PhotoStripFrame({ photos, template, scale = 1, ...rest }, ref) {
   const { colors, frame, layout } = template;
 
   const isStrip = layout === "strip-1x4";
   const isGrid = layout === "strip-2x2";
   const isCinema = layout === "cinematic-3";
 
+  // Ukuran frame keseluruhan
+  const frameWidth = isStrip ? 200 * scale : isGrid ? 280 * scale : isCinema ? 360 * scale : 240 * scale;
+
   return (
     <div
       ref={ref}
-      className="relative overflow-hidden select-none"
       style={{
+        width: frameWidth,
         background: colors.bg,
-        padding: `${frame.padding * scale}px`,
-        borderRadius: `${frame.cornerRadius * scale + 8}px`,
+        padding: frame.padding * scale,
+        borderRadius: (frame.cornerRadius + 8) * scale,
         border: `${frame.borderWidth * scale}px solid ${colors.accent}50`,
         boxShadow: `0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px ${colors.accent}20, 0 0 60px ${colors.cardGlow}`,
-        width: isStrip ? `${220 * scale}px` : isGrid ? `${280 * scale}px` : isCinema ? `${340 * scale}px` : `${260 * scale}px`,
+        display: "flex",
+        flexDirection: "column",
+        gap: 0,
       }}
+      {...rest}
     >
-      {/* Gradient header bar */}
-      <div className="absolute top-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, ${colors.accentDark}, ${colors.accent}, ${colors.accentLight}, ${colors.accent}, ${colors.accentDark})` }} />
+      {/* Header gradient bar */}
+      <div
+        style={{
+          height: 3 * scale,
+          borderRadius: `${frame.cornerRadius * scale}px ${frame.cornerRadius * scale}px 0 0`,
+          background: `linear-gradient(90deg, ${colors.accentDark}, ${colors.accent}, ${colors.accentLight})`,
+          marginBottom: 6 * scale,
+          flexShrink: 0,
+        }}
+      />
 
-      {/* Photo grid */}
-      <div className={cn(isStrip && "flex flex-col", isGrid && "grid grid-cols-2", isCinema && "flex flex-row")} style={{ gap: `${6 * scale}px` }}>
-        {photos.map((photo, i) => (
-          <div
-            key={i}
-            className="relative overflow-hidden"
-            style={{
-              borderRadius: `${frame.cornerRadius * scale}px`,
-              aspectRatio: isCinema ? "4/3" : isGrid ? "1/1" : "4/3",
-              border: `${1 * scale}px solid ${colors.accent}20`,
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photo}
-              alt={`foto ${i + 1}`}
-              className="w-full h-full object-cover"
-              style={{
-                filter: getFilterStyle(template.filter),
-              }}
-            />
+      {/* Photo container */}
+      {isStrip && (
+        // Strip 1x4: foto berjejer vertikal, setiap foto 4:3 landscape
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 * scale }}>
+          {photos.map((photo, i) => (
+            <PhotoSlot key={i} photo={photo} index={i} filter={template.filter} cornerRadius={frame.cornerRadius * scale} accentColor={colors.accent} aspectRatio="4/3" />
+          ))}
+        </div>
+      )}
 
-            {/* Vignette per foto */}
-            <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 50%, rgba(0,0,0,0.25) 100%)" }} />
+      {isGrid && (
+        // Grid 2x2: foto dalam 2 kolom, setiap foto 1:1 square
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 * scale }}>
+          {photos.map((photo, i) => (
+            <PhotoSlot key={i} photo={photo} index={i} filter={template.filter} cornerRadius={frame.cornerRadius * scale} accentColor={colors.accent} aspectRatio="1/1" />
+          ))}
+        </div>
+      )}
 
-            {/* Frame number badge */}
-            <div className="absolute top-1 left-1 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: `${colors.accent}30`, backdropFilter: "blur(4px)" }}>
-              <span className="text-[7px] font-bold" style={{ color: colors.accentLight }}>
-                {i + 1}
-              </span>
+      {isCinema && (
+        // Cinematic: foto berjejer horizontal, setiap foto 3:4 portrait
+        // Ini yang paling penting — portrait bukan landscape!
+        <div style={{ display: "flex", flexDirection: "row", gap: 6 * scale }}>
+          {photos.map((photo, i) => (
+            <div key={i} style={{ flex: 1 }}>
+              <PhotoSlot photo={photo} index={i} filter={template.filter} cornerRadius={frame.cornerRadius * scale} accentColor={colors.accent} aspectRatio="3/4" />
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Footer: date + logo */}
+      {/* Fallback: single */}
+      {!isStrip && !isGrid && !isCinema && <PhotoSlot photo={photos[0]} index={0} filter={template.filter} cornerRadius={frame.cornerRadius * scale} accentColor={colors.accent} aspectRatio="4/3" />}
+
+      {/* Footer */}
       {(frame.showDate || frame.showLogo) && (
-        <div className="flex items-center justify-between mt-2 px-0.5" style={{ paddingTop: `${4 * scale}px` }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: 6 * scale,
+            paddingInline: 2 * scale,
+          }}
+        >
           {frame.showDate && (
-            <span className="font-mono" style={{ fontSize: `${8 * scale}px`, color: colors.accentLight, opacity: 0.6 }}>
-              {new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+            <span
+              style={{
+                fontFamily: "monospace",
+                fontSize: 8 * scale,
+                color: colors.accentLight,
+                opacity: 0.65,
+              }}
+            >
+              {new Date().toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
             </span>
           )}
           {frame.showLogo && (
-            <span className="font-bold tracking-widest uppercase" style={{ fontSize: `${7 * scale}px`, color: colors.accentLight, opacity: 0.5 }}>
+            <span
+              style={{
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                fontSize: 7 * scale,
+                color: colors.accentLight,
+                opacity: 0.5,
+              }}
+            >
               SnapFrame
             </span>
           )}
         </div>
       )}
-
-      {/* Noise grain overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.025]"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-        }}
-      />
     </div>
   );
 });
+
+/* ── PhotoSlot ─────────────────────────────────────────
+   Satu slot foto.
+   Kunci utama: object-fit "cover" + aspect-ratio yang benar.
+   "cover" = foto mengisi area tanpa distorsi, crop jika perlu.
+   Ini yang mencegah foto gepeng.
+─────────────────────────────────────────────────────── */
+function PhotoSlot({ photo, index, filter, cornerRadius, accentColor, aspectRatio }: { photo: string; index: number; filter: string; cornerRadius: number; accentColor: string; aspectRatio: string }) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        aspectRatio,
+        borderRadius: cornerRadius,
+        overflow: "hidden",
+        border: `1px solid ${accentColor}20`,
+        background: "rgba(0,0,0,0.2)",
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photo}
+        alt={`foto ${index + 1}`}
+        style={{
+          width: "100%",
+          height: "100%",
+          // object-fit: cover = foto tidak gepeng, crop dari tengah
+          objectFit: "cover",
+          objectPosition: "center",
+          display: "block",
+          filter: getFilterStyle(filter),
+        }}
+      />
+
+      {/* Vignette halus */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 55%, rgba(0,0,0,0.22) 100%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Nomor foto */}
+      <div
+        style={{
+          position: "absolute",
+          top: 4,
+          left: 4,
+          width: 14,
+          height: 14,
+          borderRadius: "50%",
+          background: `${accentColor}35`,
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span style={{ fontSize: 7, fontWeight: 700, color: "white", opacity: 0.85 }}>{index + 1}</span>
+      </div>
+    </div>
+  );
+}
 
 function getFilterStyle(filter: string): string {
   switch (filter) {
