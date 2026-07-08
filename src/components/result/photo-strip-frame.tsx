@@ -8,10 +8,12 @@ interface PhotoStripFrameProps {
   photos: string[];
   template: PhotoboothTemplate;
   scale?: number;
-  [key: string]: unknown;
 }
 
-export const PhotoStripFrame = forwardRef<HTMLDivElement, PhotoStripFrameProps>(function PhotoStripFrame({ photos, template, scale = 1, ...rest }, ref) {
+export const PhotoStripFrame = forwardRef<HTMLDivElement, PhotoStripFrameProps>(function PhotoStripFrame(props, ref) {
+  const { photos, template, scale = 1, ...rest } = props;
+  const test: PhotoboothTemplate = template;
+
   const { colors, frame, layout } = template;
 
   const isStrip = layout === "strip-1x4";
